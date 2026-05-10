@@ -8,11 +8,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: 'Inter', system-ui, sans-serif;
@@ -22,7 +18,6 @@
             flex-direction: column;
             align-items: center;
             padding: 20px;
-            color: #333;
         }
         
         .container {
@@ -41,10 +36,7 @@
             text-align: center;
         }
         
-        h1 {
-            font-size: 1.8rem;
-            font-weight: 600;
-        }
+        h1 { font-size: 1.8rem; font-weight: 600; }
         
         .scanner-container {
             position: relative;
@@ -53,36 +45,26 @@
             max-height: 480px;
         }
         
-        #reader {
-            width: 100%;
-            height: 100%;
-        }
+        #reader { width: 100%; height: 100%; }
         
         .overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border: 3px solid rgba(255, 255, 255, 0.6);
+            inset: 0;
+            border: 3px solid rgba(255,255,255,0.6);
             pointer-events: none;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
         }
         
         .scan-line {
             position: absolute;
-            left: 0;
-            right: 0;
+            left: 0; right: 0;
             height: 4px;
             background: linear-gradient(90deg, transparent, #22ff88, transparent);
             box-shadow: 0 0 20px #22ff88;
             animation: scan 2s linear infinite;
         }
         
-        @keyframes scan {
-            0% { top: 20%; }
-            100% { top: 80%; }
-        }
+        @keyframes scan { 0% { top: 20%; } 100% { top: 80%; } }
         
         .controls {
             padding: 20px;
@@ -93,7 +75,7 @@
         }
         
         button {
-            padding: 12px 24px;
+            padding: 12px 20px;
             border: none;
             border-radius: 12px;
             font-weight: 600;
@@ -103,6 +85,250 @@
             min-width: 140px;
         }
         
+        .btn-primary { background: #4f46e5; color: white; }
+        .btn-primary:hover { background: #4338ca; transform: translateY(-2px); }
+        .btn-secondary { background: #e2e8f0; color: #334155; }
+        
+        .upload-area {
+            border: 2px dashed #94a3b8;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .upload-area:hover {
+            border-color: #4f46e5;
+            background: #f0f4ff;
+        }
+        
+        #preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin: 15px auto;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .result {
+            padding: 20px;
+            background: #f1f5f9;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .result-title {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        #resultText {
+            font-size: 1.1rem;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 Barcode & QR Scanner</h1>
+        </header>
+        
+        <!-- Live Camera -->
+        <div class="scanner-container">
+            <div id="reader"></div>
+            <div class="overlay">
+                <div class="scan-line"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" class="btn-primary">📷 Start Camera</button>
+            <button id="stopBtn" class="btn-secondary" disabled>⏹ Stop Camera</button>
+        </div>
+        
+        <!-- Image Upload -->
+        <div class="controls" style="border-top: 1px solid #e2e8f0;">
+            <div class="upload-area" id="uploadArea">
+                <p>📤 Upload Photo or Image</p>
+                <small>PNG, JPG, JPEG, WebP</small>
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            </div>
+        </div>
+        
+        <img id="preview" alt="Preview">
+        
+        <div class="controls" id="scanImageControls" style="display: none; border-top: 1px solid #e2e8f0;">
+            <button id="scanImageBtn" class="btn-primary">🔍 Scan Uploaded Image</button>
+            <button id="clearImageBtn" class="btn-secondary">Clear</button>
+        </div>
+        
+        <div class="result">
+            <div class="result-title">Scan Result</div>
+            <div id="resultText">Point camera at a code or upload an image</div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        Live Camera + Image Upload • Powered by HTML5 + ZXing
+    </div>
+    
+    <script>
+        let html5QrCode;
+        let isScanning = false;
+        let currentImageFile = null;
+        
+        function initScanner() {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+        
+        // ====================== LIVE CAMERA ======================
+        async function startScanning() {
+            if (!html5QrCode) initScanner();
+            
+            try {
+                const cameras = await Html5Qrcode.getCameras();
+                let cameraId = cameras[0].id;
+                
+                if (cameras.length > 1) {
+                    const back = cameras.find(c => c.label.toLowerCase().includes('back') || 
+                                                   c.label.toLowerCase().includes('rear'));
+                    if (back) cameraId = back.id;
+                }
+                
+                await html5QrCode.start(cameraId, {
+                    fps: 15,
+                    qrbox: { width: 280, height: 280 }
+                }, onScanSuccess, () => {});
+                
+                isScanning = true;
+                document.getElementById("startBtn").disabled = true;
+                document.getElementById("stopBtn").disabled = false;
+                
+            } catch (err) {
+                alert("Camera access denied or unavailable.");
+            }
+        }
+        
+        function stopScanning() {
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then(() => {
+                    isScanning = false;
+                    document.getElementById("startBtn").disabled = false;
+                    document.getElementById("stopBtn").disabled = true;
+                });
+            }
+        }
+        
+        // ====================== IMAGE UPLOAD ======================
+        function handleImageUpload(file) {
+            currentImageFile = file;
+            const preview = document.getElementById("preview");
+            const scanControls = document.getElementById("scanImageControls");
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = "block";
+                scanControls.style.display = "flex";
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function scanUploadedImage() {
+            if (!currentImageFile) return;
+            
+            try {
+                const result = await html5QrCode.scanFile(currentImageFile, true);
+                onScanSuccess(result.decodedText, result);
+            } catch (err) {
+                document.getElementById("resultText").innerHTML = 
+                    `<span style="color:#ef4444">❌ No barcode/QR code found in image</span>`;
+            }
+        }
+        
+        function clearImage() {
+            currentImageFile = null;
+            document.getElementById("preview").style.display = "none";
+            document.getElementById("scanImageControls").style.display = "none";
+            document.getElementById("imageInput").value = "";
+        }
+        
+        // ====================== SUCCESS HANDLER ======================
+        function onScanSuccess(decodedText) {
+            if (isScanning) stopScanning();
+            
+            const resultEl = document.getElementById("resultText");
+            resultEl.innerHTML = `
+                <strong style="color:#22c55e">✓ Successfully Scanned!</strong><br><br>
+                ${decodedText}
+            `;
+            
+            // Auto open URLs
+            if (decodedText.match(/^https?:\/\//i)) {
+                setTimeout(() => {
+                    if (confirm("Open this link?")) window.open(decodedText, '_blank');
+                }, 700);
+            }
+            
+            if (navigator.vibrate) navigator.vibrate(200);
+        }
+        
+        // ====================== EVENT LISTENERS ======================
+        window.onload = () => {
+            initScanner();
+            
+            // Camera buttons
+            document.getElementById("startBtn").addEventListener("click", startScanning);
+            document.getElementById("stopBtn").addEventListener("click", stopScanning);
+            
+            // Upload handling
+            const uploadArea = document.getElementById("uploadArea");
+            const imageInput = document.getElementById("imageInput");
+            
+            uploadArea.addEventListener("click", () => imageInput.click());
+            
+            imageInput.addEventListener("change", (e) => {
+                if (e.target.files.length > 0) {
+                    handleImageUpload(e.target.files[0]);
+                }
+            });
+            
+            // Drag & Drop support
+            uploadArea.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = "#4f46e5";
+            });
+            
+            uploadArea.addEventListener("dragleave", () => {
+                uploadArea.style.borderColor = "#94a3b8";
+            });
+            
+            uploadArea.addEventListener("drop", (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = "#94a3b8";
+                if (e.dataTransfer.files.length > 0) {
+                    handleImageUpload(e.dataTransfer.files[0]);
+                }
+            });
+            
+            document.getElementById("scanImageBtn").addEventListener("click", scanUploadedImage);
+            document.getElementById("clearImageBtn").addEventListener("click", clearImage);
+        };
+    </script>
+</body>
+</html>        
         .btn-primary {
             background: #4f46e5;
             color: white;
