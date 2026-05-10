@@ -355,25 +355,28 @@
     }
 
     #imod .cm {
-      position: fixed;
-      top: 16px;
-      right: 20px;
-      font-size: 1.4rem;
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 10005;
+      font-size: 1.2rem;
       color: #fff;
       cursor: pointer;
-      background: rgba(255, 255, 255, .12);
+      background: rgba(239, 68, 68, 0.8);
       border: none;
       border-radius: 50%;
-      width: 42px;
-      height: 42px;
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background .2s;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
 
     #imod .cm:hover {
-      background: rgba(255, 255, 255, .26);
+      background: #ef4444;
+      transform: scale(1.1);
     }
 
     .dlbtn {
@@ -444,8 +447,8 @@
       <div id="rgrid"></div>
     </div>
   </div>  <div id="imod">
-    <button class="cm" onclick="closeMod()">✕</button>
     <div class="mw">
+      <button class="cm" onclick="closeMod()" title="Close">✕</button>
       <img id="mimg" src="" alt="">
     </div>
     
