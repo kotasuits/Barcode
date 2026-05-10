@@ -280,15 +280,48 @@
     }
 
     #imod .mw {
-      max-width: 90vw;
+      max-width: 94vw;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      position: relative;
     }
 
     #imod .mw img {
-      max-width: 100%;
-      max-height: 55vh;
+      width: 100%;
+      max-width: 800px;
+      height: auto;
+      max-height: 75vh;
+      object-fit: contain;
       border-radius: 13px;
       box-shadow: 0 18px 55px rgba(0, 0, 0, .6);
       display: block;
+    }
+
+    .dl-overlay {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-size: 1.2rem;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s;
+      opacity: 0.8;
+    }
+
+    .dl-overlay:hover {
+      opacity: 1;
+      background: var(--primary);
+      transform: scale(1.1);
     }
 
     #imod .mi {
@@ -296,8 +329,18 @@
       border: 1px solid var(--bdr);
       border-radius: 15px;
       padding: 16px 22px;
-      max-width: 90vw;
-      width: 400px;
+      max-width: 94vw;
+      width: 500px;
+    }
+
+    .track-input-box {
+      width: 100%;
+      max-width: 500px;
+      padding: 15px 20px;
+      border: 1px solid var(--bdr);
+      background: rgba(255,255,255,0.03);
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
     }
 
     #imod .mi .mn {
@@ -353,7 +396,11 @@
       transform: translateY(-2px);
       box-shadow: 0 5px 18px rgba(99, 102, 241, .5);
     }
-
+    @media(max-width:580px) {
+      #rgrid { grid-template-columns: 1fr 1fr; }
+      #imod .mi, .track-input-box { width: 92vw; padding: 12px 16px; }
+      #imod .mw img { max-height: 60vh; }
+    }
   </style>
 </head>
 
@@ -400,23 +447,25 @@
     </div>
   </div>  <div id="imod">
     <button class="cm" onclick="closeMod()">✕</button>
-    <div class="mw"><img id="mimg" src="" alt=""></div>
+    <div class="mw">
+      <img id="mimg" src="" alt="">
+      <a id="mdl" class="dl-overlay" title="Download Photo" download="parcel_photo.jpg">💾</a>
+    </div>
     
-    <!-- Tracking Input right below photo -->
-    <div class="track-input-box" style="padding: 15px 20px; border-bottom: 1px solid var(--bdr); background: rgba(255,255,255,0.03);">
-      <label style="display:block; font-size:.68rem; color:var(--pl); margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;">🚚 Live Tracking (Enter AWB from photo)</label>
+    <!-- Tracking Area -->
+    <div id="tracking-action-area" style="width:100%; display:flex; flex-direction:column; align-items:center; gap:10px;"></div>
+
+    <div class="track-input-box" id="manual-track-box">
+      <label style="display:block; font-size:.68rem; color:var(--pl); margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;">🚚 Manual Tracking</label>
       <div style="display:flex; gap:8px;">
-        <input type="text" id="manual-awb" placeholder="Type Tracking ID here..." style="flex:1; background:var(--inp); border:1px solid var(--bdr); border-radius:8px; padding:10px; color:#fff; outline:none; font-size:0.9rem;">
-        <button class="dlbtn" style="margin-top:0; padding:0 20px; background:var(--primary); font-size:0.85rem;" onclick="startManualTrack()">Click to Track</button>
+        <input type="text" id="manual-awb" placeholder="Type Tracking ID..." style="flex:1; background:var(--inp); border:1px solid var(--bdr); border-radius:8px; padding:10px; color:#fff; outline:none; font-size:0.9rem;">
+        <button class="dlbtn" style="margin-top:0; padding:0 20px; background:var(--primary); font-size:0.85rem;" onclick="startManualTrack()">Track</button>
       </div>
     </div>
 
     <div class="mi">
       <div class="mn" id="mname"></div>
       <div class="mm" id="mmeta"></div>
-      
-
-      <a id="mdl" class="dlbtn" style="width:100%; justify-content:center; margin-top:15px;" download="tracking_photo.jpg">⬇️ Download Photo</a>
     </div>
   </div>
 
@@ -512,6 +561,7 @@
       const r = allRecords.find(x => x.id === id);
       if (!r) return;
       document.getElementById('mimg').src = r.photoUrl;
+      document.getElementById('mdl').href = r.photoUrl;
       document.getElementById('mname').textContent = `👤 ${r.name}`;
       document.getElementById('mmeta').innerHTML = `
         <span class="chip">📍 ${r.pincode}</span>
@@ -520,19 +570,21 @@
         <span class="chip dt">🕐 ${fmtDate(r.uploadedAt)}</span>
       `;
 
-      // Auto-fill manual track if AWB exists
-      const manualInp = document.getElementById('manual-awb');
+      // Setup Tracking Area
+      const actionArea = document.getElementById('tracking-action-area');
+      const manualBox = document.getElementById('manual-track-box');
+      actionArea.innerHTML = '';
+
       if (r.awb) {
-        manualInp.value = r.awb;
-        // Show a big primary button if AWB exists
-        document.getElementById('mmeta').innerHTML += `
-          <div style="width:100%; margin-top:10px;">
-            <a href="livestatus.html?awb=${encodeURIComponent(r.awb)}" class="dlbtn" style="width:100%; justify-content:center; background:linear-gradient(135deg, #10b981, #059669); border:none; font-size:1.1rem; padding:14px;">🚀 Click to Track Status</a>
-          </div>
+        manualBox.style.display = 'none';
+        actionArea.innerHTML = `
+          <a href="livestatus.html?awb=${encodeURIComponent(r.awb)}" class="dlbtn" style="width:100%; max-width:500px; justify-content:center; background:linear-gradient(135deg, #10b981, #059669); border:none; font-size:1.1rem; padding:16px; border-radius:15px; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);">🚀 Click to Track Status</a>
         `;
       } else {
-        manualInp.value = '';
+        manualBox.style.display = 'block';
+        document.getElementById('manual-awb').value = '';
       }
+
       document.getElementById('imod').classList.add('open');
     }
 
